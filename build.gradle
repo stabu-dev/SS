@@ -1,0 +1,111 @@
+buildscript{
+    repositories{
+        mavenCentral()
+    }
+
+    ext{
+        mindustryVersion = "v146"
+        kotlinVersion = "2.0.20"
+        sdkRoot = System.getenv("ANDROID_HOME") ?: System.getenv("ANDROID_SDK_ROOT")
+    }
+}
+
+plugins {
+    id "de.undercouch.download" version "5.6.0"
+    id "org.jetbrains.kotlin.jvm" version "$kotlinVersion"
+}
+
+sourceSets.main.kotlin.srcDirs = ["src"]
+
+repositories{
+    mavenCentral()
+    maven{ url "https://raw.githubusercontent.com/Zelaux/MindustryRepo/master/repository" }
+    maven{ url "https://www.jitpack.io" }
+}
+
+dependencies{
+    compileOnly "com.github.Anuken.Arc:arc-core:$mindustryVersion"
+    compileOnly "com.github.Anuken.Mindustry:core:$mindustryVersion"
+}
+
+compileKotlin{
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+tasks.register("jarAndroid") {
+    dependsOn "jar"
+
+    doLast {
+        if (!sdkRoot || !new File(sdkRoot as String).exists()) throw new GradleException("No valid Android SDK found. Ensure that ANDROID_HOME is set to your Android SDK directory.")
+
+        def platformRoot = new File("$sdkRoot/platforms/").listFiles().sort().reverse().find { f -> new File(f, "android.jar").exists() }
+
+        if (!platformRoot) throw new GradleException("No android.jar found. Ensure that you have an Android platform installed.")
+
+        //collect dependencies needed for desugaring
+        def dependencies = (configurations.compileClasspath.asList() + configurations.runtimeClasspath.asList() + [new File(platformRoot, "android.jar")]).collect { "--classpath $it.path" }.join(" ")
+
+        //dex and desugar files - this requires d8 in your PATH
+        "d8 $dependencies --min-api 14 --output ${project.archivesBaseName}Android.jar ${project.archivesBaseName}Desktop.jar"
+                .execute(null, new File("$buildDir/libs")).waitForProcessOutput(System.out, System.err)
+    }
+}
+
+jar{
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    archiveFileName = "${project.archivesBaseName}Desktop.jar"
+
+    from{
+        configurations.runtimeClasspath.collect{ it.isDirectory() ? it : zipTree(it) }
+    }
+
+    from(rootDir){
+        include "mod.hjson"
+    }
+
+    from("assets/"){
+        include "**"
+    }
+}
+
+tasks.register("deploy", Jar) {
+    dependsOn jarAndroid
+    dependsOn jar
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    archiveFileName = "${project.archivesBaseName}.jar"
+
+    from { [zipTree("$buildDir/libs/${project.archivesBaseName}Desktop.jar"), zipTree("$buildDir/libs/${project.archivesBaseName}Android.jar")] }
+
+    doLast {
+        delete {
+            delete "$buildDir/libs/${project.archivesBaseName}Desktop.jar"
+            delete "$buildDir/libs/${project.archivesBaseName}Android.jar"
+        }
+    }
+}
+
+tasks.register("fetchClient", Download) {
+    src "https://github.com/Anuken/Mindustry/releases/download/$mindustryVersion/Mindustry.jar"
+    dest file("$rootDir/run/Mindustry.jar")
+    overwrite false
+}
+
+tasks.register("runClient", JavaExec) {
+    dependsOn "fetchClient"
+    dependsOn "jar"
+
+    def modFilename = "${project.name}Desktop.jar"
+    doFirst {
+        copy {
+            from("$rootDir/build/libs/$modFilename")
+            into("$rootDir/run/mods")
+            rename { String fileName ->
+                modFilename
+            }
+        }
+    }
+
+    environment "MINDUSTRY_DATA_DIR", "$rootDir/run"
+    classpath files("$rootDir/run/Mindustry.jar")
+}

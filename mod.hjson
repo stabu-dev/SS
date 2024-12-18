@@ -1,0 +1,7 @@
+displayName: "Spins & Stress"
+name: "ss"
+author: "stabu_"
+main: "ss.SSMod"
+description: "Funny mod about spins and stress"
+version: 1.0
+minGameVersion: 146
