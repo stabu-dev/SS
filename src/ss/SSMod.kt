@@ -2,6 +2,7 @@ package ss
 
 import arc.util.*
 import mindustry.mod.*
+import ss.content.*
 
 class SSMod : Mod(){
 
@@ -15,5 +16,6 @@ class SSMod : Mod(){
 
     override fun loadContent(){
         Log.info("Loading some Spins & Stress content.")
+        SSBlocks().load()
     }
 }
