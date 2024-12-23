@@ -16,7 +16,7 @@ class SpinGraph {
     private val consumers: Seq<Building> = Seq()
     val all: Seq<Building> = Seq()
 
-    val graphID: Int = lastGraphID++
+    var graphID: Int = lastGraphID++
 
     companion object {
         private var lastGraphID: Int = 0

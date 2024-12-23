@@ -1,15 +1,11 @@
 package ss.world.blocks.spin
 
-import arc.Core.bundle
-import arc.graphics.g2d.Draw
-import arc.scene.ui.layout.Table
-import mindustry.graphics.Layer
-import mindustry.graphics.Pal
-import mindustry.ui.Bar
-import mindustry.ui.Styles
-import mindustry.world.Block
-import mindustry.world.Tile
-import ss.world.modules.SpinModule
+import arc.Core.*
+import arc.graphics.g2d.*
+import mindustry.graphics.*
+import mindustry.ui.*
+import mindustry.world.*
+import ss.world.modules.*
 
 abstract class SpinBlock(name: String) : Block(name) {
 
@@ -27,7 +23,7 @@ abstract class SpinBlock(name: String) : Block(name) {
         super.setBars()
         addBar<SpinBuild>("spins") {
             Bar(
-                { bundle.format("bar.spins", "${it.module.graph?.spins}$") },
+                { bundle.format("bar.spins", it.module.graph?.spins) },
                 { Pal.ammo },
                 { it.module.graph?.spins?.div(200) ?: 0f }
             )
@@ -35,8 +31,8 @@ abstract class SpinBlock(name: String) : Block(name) {
 
         addBar<SpinBuild>("stress") {
             Bar(
-                { bundle.format("bar.stress", "$it.module.graph?.currentStress/$it.module.graph?.maxStress") },
-                { Pal.accent},
+                { bundle.format("bar.stress", it.module.graph?.currentStress, it.module.graph?.maxStress) },
+                { Pal.accent },
                 { (it.module.graph?.currentStress?.div(it.module.graph?.maxStress ?: 1f)) ?: 0f }
             )
         }
