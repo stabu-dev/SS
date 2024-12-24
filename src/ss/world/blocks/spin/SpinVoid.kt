@@ -8,18 +8,15 @@ class SpinVoid(name: String, val defaultGeneratedStress: Float) : SpinBlock(name
     init {
         configurable = true
         update = true
+        produceSpin = false
+        consumeSpin = true
+        spins = 0f
     }
-
-    override fun isProducer(): Boolean = false
-    override fun isConsumer(): Boolean = true
-    override fun getGeneratedSpins(tile: Tile): Float = 0f
 
     override fun getGeneratedStress(tile: Tile): Float {
         val build = tile.build
         return if (build is SimpleConsumerBuild) build.generatedStress else defaultGeneratedStress
     }
-
-    override fun getMaxStress(tile: Tile): Float = 0f
 
     inner class SimpleConsumerBuild : SpinBuild() {
         var generatedStress: Float = defaultGeneratedStress

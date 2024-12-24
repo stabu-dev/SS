@@ -8,16 +8,15 @@ class SpinSource(name: String, val defaultProducedSpins: Float, val defaultStres
     init {
         configurable = true
         update = true
+        produceSpin = true
+        consumeSpin = false
+        stress = 0f
     }
 
-    override fun isProducer(): Boolean = true
-    override fun isConsumer(): Boolean = false
     override fun getGeneratedSpins(tile: Tile): Float {
         val build = tile.build
         return if (build is SpinSourceBuild) build.producedSpins else defaultProducedSpins
     }
-
-    override fun getGeneratedStress(tile: Tile): Float = 0f
 
     override fun getMaxStress(tile: Tile): Float {
         val build = tile.build

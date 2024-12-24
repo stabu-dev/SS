@@ -9,15 +9,21 @@ import ss.world.modules.*
 
 abstract class SpinBlock(name: String) : Block(name) {
 
+    var produceSpin: Boolean = false
+    var consumeSpin: Boolean = false
+    var spins: Float = 0f
+    var stress: Float = 0f
+    var maxStress: Float = 0f
+
     init {
         update = true
     }
 
-    open fun isProducer(): Boolean = false
-    open fun isConsumer(): Boolean = false
-    open fun getGeneratedSpins(tile: Tile): Float = 0f
-    open fun getGeneratedStress(tile: Tile): Float = 0f
-    open fun getMaxStress(tile: Tile): Float = 0f
+    open fun isProducer(): Boolean = produceSpin
+    open fun isConsumer(): Boolean = consumeSpin
+    open fun getGeneratedSpins(tile: Tile): Float = spins
+    open fun getGeneratedStress(tile: Tile): Float = stress
+    open fun getMaxStress(tile: Tile): Float = maxStress
 
     override fun setBars() {
         super.setBars()

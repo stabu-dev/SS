@@ -9,7 +9,7 @@ import ss.world.blocks.spin.*
 class SSBlocks {
     lateinit var spinSource: Block
     lateinit var spinVoid: Block
-    lateinit var shaft: Block
+    lateinit var gearbox: Block
 
     fun load() {
         spinSource = SpinSource("spin-source", 1f, 1f).apply {
@@ -28,7 +28,7 @@ class SSBlocks {
             )
         }
 
-        shaft = Shaft("shaft").apply {
+        gearbox = Gearbox("gearbox").apply {
             requirements(
                 Category.power,
                 BuildVisibility.shown,

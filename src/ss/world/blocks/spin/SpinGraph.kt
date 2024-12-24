@@ -178,8 +178,6 @@ class SpinGraph {
         calculate()
     }
 
-    fun getId(): Int = graphID
-
     override fun toString(): String {
         return "SpinGraph(" +
                 "id=$graphID, spins=$spins, maxStress=$maxStress, " +
