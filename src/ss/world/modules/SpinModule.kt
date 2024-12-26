@@ -4,7 +4,10 @@ import arc.util.io.*
 import mindustry.Vars.*
 import mindustry.world.modules.*
 import ss.world.blocks.spin.*
-
+/**
+ * A module to hold reference to the SpinGraph for a SpinBlock building.
+ * Responsible for serialization/deserialization of the building's graph link.
+ */
 class SpinModule: BlockModule() {
     var graph: SpinGraph? = null
 
@@ -24,6 +27,7 @@ class SpinModule: BlockModule() {
     }
 
     override fun read(read: Reads) {
+        // On load, if there's a serialized graph, reconstruct it or re-link existing blocks.
         if (read.bool()) {
             graph = SpinGraph()
             graph?.graphID = read.i()
@@ -40,16 +44,9 @@ class SpinModule: BlockModule() {
                     building.module.graph = this.graph
                 }
             }
-            graph?.calculate()
+            graph?.markDirty()
         } else {
             graph = null
-        }
-    }
-
-    fun syncWithGraph() {
-        graph?.let {
-            it.spins
-            it.currentStress
         }
     }
 }

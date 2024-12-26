@@ -3,7 +3,7 @@ package ss.world.blocks.spin
 import arc.scene.ui.layout.*
 import mindustry.world.*
 
-class SpinVoid(name: String, val defaultGeneratedStress: Float) : SpinBlock(name) {
+class SpinVoid(name: String, var defaultGeneratedStress: Float) : SpinBlock(name) {
 
     init {
         configurable = true

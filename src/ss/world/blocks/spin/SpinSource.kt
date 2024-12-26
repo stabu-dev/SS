@@ -3,7 +3,7 @@ package ss.world.blocks.spin
 import arc.scene.ui.layout.*
 import mindustry.world.*
 
-class SpinSource(name: String, val defaultProducedSpins: Float, val defaultStressCapacity: Float) : SpinBlock(name) {
+class SpinSource(name: String, var defaultProducedSpins: Float, var defaultStressCapacity: Float) : SpinBlock(name) {
 
     init {
         configurable = true
