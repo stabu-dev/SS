@@ -61,8 +61,6 @@ abstract class SpinBlock(name: String) : Block(name) {
      * Determines if a building [from] can connect to a building [to], based on [connectionIndexes].
      * Returns true if allowed, false otherwise.
      */
-
-    //TODO: works bad with blocks which size>1
     open fun canConnect(from: Building, to: Building): Boolean {
         val indexes = connectionIndexes
         if (indexes == null || indexes.isEmpty()) {
@@ -109,42 +107,43 @@ abstract class SpinBlock(name: String) : Block(name) {
      *
      * If it doesn't match any recognized side, returns -1.
      */
+    //TODO: fix calculations for even-sized blocks
     protected fun getSideIndex(from: Building, to: Building): Int {
         val size = from.block.size
         val rot = from.rotation
 
-        val x0 = from.tile.x
-        val y0 = from.tile.y
+        val x0 = from.tile.x - (size - 1) / 2
+        val y0 = from.tile.y - (size - 1) / 2
 
-        // Convert global coords of [to] to local coords (lx, ly).
+        // Convert global coords of [to] to local coords (lx, ly)
         val (lx, ly) = globalToLocal(
             to.tile.x.toInt(),
             to.tile.y.toInt(),
-            x0.toInt(),
-            y0.toInt(),
+            x0,
+            y0,
             size,
             rot
         )
 
-        // The next conditions assume the top-left of the block is (0,0) locally
-        // and that the block extends to (size-1,size-1). So y = size means "below" the block, etc.
+        // Check if the point is near any edge, accounting for block sizes
+        val toSize = to.block.size
 
-        // side 0: "down" edge if ly == size
-        if (ly == size && lx in 0 until size) {
-            return 0 * size + lx
+        // Bottom edge
+        if (ly >= size - toSize/2 && ly <= size + toSize/2 && lx in -toSize/2 until size+toSize/2) {
+            return 0 * size + (lx + toSize/2).coerceIn(0 until size)
         }
-        // side 1: "right" edge if lx == size
-        if (lx == size && ly in 0 until size) {
-            return 1 * size + ly
+        // Right edge
+        if (lx >= size - toSize/2 && lx <= size + toSize/2 && ly in -toSize/2 until size+toSize/2) {
+            return 1 * size + (ly + toSize/2).coerceIn(0 until size)
         }
-        // side 2: "up" edge if ly == -1
-        if (ly == -1 && lx in 0 until size) {
-            val offset = (size - 1 - lx)
+        // Top edge
+        if (ly >= -1 - toSize/2 && ly <= -1 + toSize/2 && lx in -toSize/2 until size+toSize/2) {
+            val offset = (size - 1 - (lx + toSize/2)).coerceIn(0 until size)
             return 2 * size + offset
         }
-        // side 3: "left" edge if lx == -1
-        if (lx == -1 && ly in 0 until size) {
-            val offset = (size - 1 - ly)
+        // Left edge
+        if (lx >= -1 - toSize/2 && lx <= -1 + toSize/2 && ly in -toSize/2 until size+toSize/2) {
+            val offset = (size - 1 - (ly + toSize/2)).coerceIn(0 until size)
             return 3 * size + offset
         }
 
