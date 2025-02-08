@@ -11,6 +11,11 @@ class SSBlocks {
     lateinit var spinVoid: Block
     lateinit var gearbox: Block
     lateinit var shaft: Block
+    lateinit var test1: Block
+    lateinit var test2: Block
+    lateinit var test3: Block
+    lateinit var test4: Block
+    lateinit var test5: Block
 
     fun load() {
         spinSource = SpinSource("spin-source", 1f, 1f).apply {
@@ -45,6 +50,81 @@ class SSBlocks {
                 Category.power,
                 BuildVisibility.shown,
                 empty
+            )
+        }
+
+        test1 = Gearbox("test").apply {
+            requirements(
+                Category.power,
+                BuildVisibility.shown,
+                empty
+            )
+            size = 2
+            connectionIndexes = intArrayOf(
+                1, 1,
+                1, 1,
+                1, 1,
+                1, 1
+            )
+        }
+
+        test2 = Gearbox("test2").apply {
+            requirements(
+                Category.power,
+                BuildVisibility.shown,
+                empty
+            )
+            size = 3
+            connectionIndexes = intArrayOf(
+                1, 1, 1,
+                1, 1, 1,
+                1, 1, 1,
+                1, 1, 1
+            )
+        }
+
+        test3 = Gearbox("test3").apply {
+            requirements(
+                Category.power,
+                BuildVisibility.shown,
+                empty
+            )
+            size = 4
+            connectionIndexes = intArrayOf(
+                1, 1, 1, 1,
+                1, 1, 1, 1,
+                1, 1, 1, 1,
+                1, 1, 1, 1
+            )
+        }
+
+        test4 = Gearbox("test4").apply {
+            requirements(
+                Category.power,
+                BuildVisibility.shown,
+                empty
+            )
+            size = 5
+            connectionIndexes = intArrayOf(
+                1, 1, 1, 1, 1,
+                1, 1, 1, 1, 1,
+                1, 1, 1, 1, 1,
+                1, 1, 1, 1, 1
+            )
+        }
+
+        test5 = Gearbox("test5").apply {
+            requirements(
+                Category.power,
+                BuildVisibility.shown,
+                empty
+            )
+            size = 6
+            connectionIndexes = intArrayOf(
+                1, 1, 1, 1, 1, 1,
+                1, 1, 1, 1, 1, 1,
+                1, 1, 1, 1, 1, 1,
+                1, 1, 1, 1, 1, 1
             )
         }
     }

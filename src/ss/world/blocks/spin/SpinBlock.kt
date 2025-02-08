@@ -7,6 +7,7 @@ import mindustry.ui.*
 import mindustry.world.*
 import ss.world.modules.*
 import mindustry.gen.*
+import kotlin.math.*
 /**
  * Base class for blocks that produce/consume "spin".
  * Allows for configuration of connection indexes for multi-tile blocks.
@@ -22,8 +23,8 @@ abstract class SpinBlock(name: String) : Block(name) {
 
     /**
      * Determines which side positions are open for connection; for a block of size N,
-     * indexes [0..N-1] => down, [N..2N-1] => right, [2N..3N-1] => up, [3N..4N-1] => left.
-     * 0 blocks a position, 1 allows it.
+     * conventional indexing: 0..N-1 => bottom, N..2N-1 => right, 2N..3N-1 => top, 3N..4N-1 => left.
+     * For example, for size=1 it will be 4 elements; for size=2 - 8 elements.
      */
     var connectionIndexes: IntArray? = intArrayOf(1, 1, 1, 1)
 
@@ -58,136 +59,67 @@ abstract class SpinBlock(name: String) : Block(name) {
     }
 
     /**
-     * Determines if a building [from] can connect to a building [to], based on [connectionIndexes].
-     * Returns true if allowed, false otherwise.
+     * Determines if a building [from] can connect to a building [to] based on connectionIndexes.
      */
     open fun canConnect(from: Building, to: Building): Boolean {
         val indexes = connectionIndexes
-        if (indexes == null || indexes.isEmpty()) {
-            return true
-        }
+        if (indexes == null || indexes.isEmpty()) return true
         val sideIdx = getSideIndex(from, to)
         if (sideIdx < 0 || sideIdx >= indexes.size) return false
         return (indexes[sideIdx] != 0)
     }
 
     /**
-     * Transforms global tile (gx, gy) into local (lx, ly) coordinates relative to
-     * the top-left corner of a multi-tile block with size [size], and with rotation [rot].
-     *
-     * For rotation=3, invert dx/dy consistently to keep the same pattern.
+     * Computes the connection index for the neighbor building [to] relative to building [from],
+     * taking into account multi-tile size and rotation.
      */
-    fun globalToLocal(gx: Int, gy: Int, x0: Int, y0: Int, size: Int, rot: Int): Pair<Int, Int> {
-        val dx = gx - x0
-        val dy = gy - y0
-
-        return when (rot and 3) {
-            0 -> dx to dy
-            1 -> {
-                val lx = size - 1 - dy
-                lx to dx
-            }
-            2 -> {
-                val lx = size - 1 - dx
-                val ly = size - 1 - dy
-                lx to ly
-            }
-            3 -> {
-                // for rotation=3: (dx, dy) -> (dy, size-1-dx) or a variant
-                val ly = size - 1 - dx
-                dy to ly
-            }
-            else -> dx to dy
-        }
-    }
-
-    /**
-     * Returns an integer index representing which side (and offset along that side) [to] is
-     * relative to [from], considering [from]'s rotation and multi-tile size.
-     *
-     * If it doesn't match any recognized side, returns -1.
-     */
-    //TODO: fix calculations for even-sized blocks
-    protected fun getSideIndex(from: Building, to: Building): Int {
+    private fun getSideIndex(from: Building, to: Building): Int {
         val size = from.block.size
-        val rot = from.rotation
 
-        val x0 = from.tile.x - (size - 1) / 2
-        val y0 = from.tile.y - (size - 1) / 2
+        val offset = if (size % 2 == 0) 0.5f else 0f
+        val centerX = from.tile.x + offset
+        val centerY = from.tile.y + offset
 
-        // Convert global coords of [to] to local coords (lx, ly)
-        val (lx, ly) = globalToLocal(
-            to.tile.x.toInt(),
-            to.tile.y.toInt(),
-            x0,
-            y0,
-            size,
-            rot
-        )
-
-        // Check if the point is near any edge, accounting for block sizes
         val toSize = to.block.size
+        val toOffset = if (toSize % 2 == 0) 0.5f else 0f
+        val toCenterX = to.tile.x + toOffset
+        val toCenterY = to.tile.y + toOffset
 
-        // Bottom edge
-        if (ly >= size - toSize/2 && ly <= size + toSize/2 && lx in -toSize/2 until size+toSize/2) {
-            return 0 * size + (lx + toSize/2).coerceIn(0 until size)
+        val dx = toCenterX - centerX
+        val dy = toCenterY - centerY
+
+        // TODO: perhaps it is overcomplicated
+        val rotRad = Math.toRadians((from.rotation * 90).toDouble())
+        val rdx = (dx * cos(-rotRad) - dy * sin(-rotRad)).toFloat()
+        val rdy = (dx * sin(-rotRad) + dy * cos(-rotRad)).toFloat()
+
+        var ang = Math.toDegrees(atan2(rdy.toDouble(), rdx.toDouble()))
+        if (ang < 0) ang += 360
+
+        val side = when {
+            ang >= 225 && ang < 315 -> 0 // bottom
+            ang >= 315 || ang < 45 -> 1 // right
+            ang >= 45 && ang < 135 -> 2 // top
+            ang >= 135 && ang < 225 -> 3 // left
+            else -> -1
         }
-        // Right edge
-        if (lx >= size - toSize/2 && lx <= size + toSize/2 && ly in -toSize/2 until size+toSize/2) {
-            return 1 * size + (ly + toSize/2).coerceIn(0 until size)
-        }
-        // Top edge
-        if (ly >= -1 - toSize/2 && ly <= -1 + toSize/2 && lx in -toSize/2 until size+toSize/2) {
-            val offset = (size - 1 - (lx + toSize/2)).coerceIn(0 until size)
-            return 2 * size + offset
-        }
-        // Left edge
-        if (lx >= -1 - toSize/2 && lx <= -1 + toSize/2 && ly in -toSize/2 until size+toSize/2) {
-            val offset = (size - 1 - (ly + toSize/2)).coerceIn(0 until size)
-            return 3 * size + offset
-        }
 
-        return -1
-    }
-
-    /**
-     * Helper function to get the local position of a side index, for debug or advanced usage.
-     */
-    fun getConnectSidePos(index: Int, size: Int, rotation: Int): arc.math.geom.Point2 {
-        var side = index / size
-        side = (side + rotation) % 4
-
-        val tangent = d4((side + 1) % 4)
-        var originX = 0
-        var originY = 0
-
-        if (size > 1) {
-            originX += size / 2
-            originY += size / 2
-            originY -= size - 1
-            if (side > 0) {
-                for (i in 1..side) {
-                    originX += d4x(i) * (size - 1)
-                    originY += d4y(i) * (size - 1)
-                }
+        // Calculate the offset along the side.
+        // For bottom and top, using the horizontal component (rdx),
+        // for right and left - the vertical component (rdy).
+        val off: Int = when (side) {
+            0, 2 -> {
+                // Normalize rdx from the range [-1,1] to [0, size-1]
+                (((rdx + 1f) / 2f) * (size - 1)).roundToInt().coerceIn(0, size - 1)
             }
-            originX += tangent.x * (index % size)
-            originY += tangent.y * (index % size)
+            1, 3 -> {
+                (((rdy + 1f) / 2f) * (size - 1)).roundToInt().coerceIn(0, size - 1)
+            }
+            else -> 0
         }
-        return arc.math.geom.Point2(originX + d4x(side), originY + d4y(side))
-    }
 
-    private fun d4(i: Int): arc.math.geom.Point2 {
-        return when (i % 4) {
-            0 -> arc.math.geom.Point2(0, -1)
-            1 -> arc.math.geom.Point2(1, 0)
-            2 -> arc.math.geom.Point2(0, 1)
-            3 -> arc.math.geom.Point2(-1, 0)
-            else -> arc.math.geom.Point2(0, 0)
-        }
+        return side * size + off
     }
-    private fun d4x(i: Int) = d4(i).x
-    private fun d4y(i: Int) = d4(i).y
 
     /**
      * Represents a building instance of this SpinBlock.
@@ -206,7 +138,6 @@ abstract class SpinBlock(name: String) : Block(name) {
         override fun updateTile() {
             super.updateTile()
 
-            // If rotation changed, to re-join or create a graph
             if (rotation != lastRotation) {
                 lastRotation = rotation
                 rejoinGraph()
@@ -227,7 +158,6 @@ abstract class SpinBlock(name: String) : Block(name) {
         }
 
         override fun remove() {
-            // On removal, notify the graph so it can recalc or split as needed.
             module.graph?.remove(this)
             super.remove()
         }
