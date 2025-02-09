@@ -2,6 +2,10 @@ package ss.world.blocks.spin
 
 import arc.Core.*
 import arc.graphics.g2d.*
+import arc.math.geom.*
+import arc.util.*
+import mindustry.Vars.*
+import mindustry.entities.units.BuildPlan
 import mindustry.graphics.*
 import mindustry.ui.*
 import mindustry.world.*
@@ -9,8 +13,8 @@ import ss.world.modules.*
 import mindustry.gen.*
 import kotlin.math.*
 /**
- * Base class for blocks that produce/consume "spin".
- * Allows for configuration of connection indexes for multi-tile blocks.
+ * Base class for blocks that produce/consume "spin" and "stress".
+ * Allows for configuration of connection indexes.
  */
 abstract class SpinBlock(name: String) : Block(name) {
 
@@ -30,6 +34,7 @@ abstract class SpinBlock(name: String) : Block(name) {
 
     init {
         update = true
+        drawArrow = false
     }
 
     open fun isProducer(): Boolean = produceSpin
@@ -110,6 +115,70 @@ abstract class SpinBlock(name: String) : Block(name) {
         val off = (norm * (size - 1)).roundToInt().coerceIn(0, size - 1)
         return side * size + off
     }
+
+    //TODO: fix right shift of connectors for size>1 blocks
+    override fun drawPlanRegion(req: BuildPlan, list: Eachable<BuildPlan>) {
+        super.drawPlanRegion(req, list)
+        connectionIndexes?.let { indexes ->
+            val connectorRegion = atlas.find("ss-spin-connector")
+            for (i in indexes.indices) {
+                if (indexes[i] == 0) continue
+                val pos = getConnectSidePos(i, size, req.rotation)
+                val cx = req.x + pos.x
+                val cy = req.y + pos.y
+                var occupied = false
+                list.each { plan ->
+                    if (occupied) return@each
+                    if (cx >= plan.x && cy >= plan.y &&
+                        plan.x + plan.block.size > cx && plan.y + plan.block.size > cy
+                    ) {
+                        occupied = true
+                    }
+                }
+                if (occupied) continue
+                Draw.rect(connectorRegion, cx * tilesize.toFloat(), cy * tilesize.toFloat())
+            }
+        }
+    }
+
+    /**
+     * Helper function to get the local position of a side index.
+     */
+    private fun getConnectSidePos(index: Int, size: Int, rotation: Int): Point2 {
+        var side = index / size
+        side = (side + rotation) % 4
+
+        val tangent = d4((side + 1) % 4)
+        var originX = 0
+        var originY = 0
+
+        if (size > 1) {
+            originX += size / 2
+            originY += size / 2
+            originY -= size - 1
+            if (side > 0) {
+                for (i in 1..side) {
+                    originX += d4x(i) * (size - 1)
+                    originY += d4y(i) * (size - 1)
+                }
+            }
+            originX += tangent.x * (index % size)
+            originY += tangent.y * (index % size)
+        }
+        return Point2(originX + d4x(side), originY + d4y(side))
+    }
+
+    private fun d4(i: Int): Point2 {
+        return when (i % 4) {
+            0 -> Point2(0, -1)
+            1 -> Point2(1, 0)
+            2 -> Point2(0, 1)
+            3 -> Point2(-1, 0)
+            else -> Point2(0, 0)
+        }
+    }
+    private fun d4x(i: Int) = d4(i).x
+    private fun d4y(i: Int) = d4(i).y
 
     /**
      * Represents a building instance of this SpinBlock.
