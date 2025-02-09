@@ -76,48 +76,38 @@ abstract class SpinBlock(name: String) : Block(name) {
     private fun getSideIndex(from: Building, to: Building): Int {
         val size = from.block.size
 
-        val offset = if (size % 2 == 0) 0.5f else 0f
-        val centerX = from.tile.x + offset
-        val centerY = from.tile.y + offset
+        val fromCx = from.tile.x + if (size % 2 == 0) 0.5f else 0f
+        val fromCy = from.tile.y + if (size % 2 == 0) 0.5f else 0f
 
         val toSize = to.block.size
-        val toOffset = if (toSize % 2 == 0) 0.5f else 0f
-        val toCenterX = to.tile.x + toOffset
-        val toCenterY = to.tile.y + toOffset
+        val toCx = to.tile.x + if (toSize % 2 == 0) 0.5f else 0f
+        val toCy = to.tile.y + if (toSize % 2 == 0) 0.5f else 0f
 
-        val dx = toCenterX - centerX
-        val dy = toCenterY - centerY
+        val dx = toCx - fromCx
+        val dy = toCy - fromCy
 
-        // TODO: perhaps it is overcomplicated
-        val rotRad = Math.toRadians((from.rotation * 90).toDouble())
-        val rdx = (dx * cos(-rotRad) - dy * sin(-rotRad)).toFloat()
-        val rdy = (dx * sin(-rotRad) + dy * cos(-rotRad)).toFloat()
-
-        var ang = Math.toDegrees(atan2(rdy.toDouble(), rdx.toDouble()))
-        if (ang < 0) ang += 360
-
-        val side = when {
-            ang >= 225 && ang < 315 -> 0 // bottom
-            ang >= 315 || ang < 45 -> 1 // right
-            ang >= 45 && ang < 135 -> 2 // top
-            ang >= 135 && ang < 225 -> 3 // left
-            else -> -1
+        val (rdx, rdy) = when (from.rotation and 3) {
+            0 -> dx to dy
+            1 -> -dy to dx
+            2 -> -dx to -dy
+            3 -> dy to -dx
+            else -> dx to dy
         }
 
-        // Calculate the offset along the side.
-        // For bottom and top, using the horizontal component (rdx),
-        // for right and left - the vertical component (rdy).
-        val off: Int = when (side) {
-            0, 2 -> {
-                // Normalize rdx from the range [-1,1] to [0, size-1]
-                (((rdx + 1f) / 2f) * (size - 1)).roundToInt().coerceIn(0, size - 1)
-            }
-            1, 3 -> {
-                (((rdy + 1f) / 2f) * (size - 1)).roundToInt().coerceIn(0, size - 1)
-            }
-            else -> 0
+        val side = if (abs(rdx) >= abs(rdy)) {
+            if (rdx >= 0f) 1 else 3
+        } else {
+            if (rdy >= 0f) 2 else 0
         }
 
+        // Compute normalized offset along the chosen side.
+        // For horizontal sides (0,2) use rdx; for vertical (1,3) use rdy.
+        val norm = when (side) {
+            0, 2 -> (rdx / (size / 2f) + 1f) / 2f
+            1, 3 -> (rdy / (size / 2f) + 1f) / 2f
+            else -> 0f
+        }
+        val off = (norm * (size - 1)).roundToInt().coerceIn(0, size - 1)
         return side * size + off
     }
 
