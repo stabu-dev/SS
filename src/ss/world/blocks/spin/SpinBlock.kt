@@ -5,7 +5,7 @@ import arc.graphics.g2d.*
 import arc.math.geom.*
 import arc.util.*
 import mindustry.Vars.*
-import mindustry.entities.units.BuildPlan
+import mindustry.entities.units.*
 import mindustry.graphics.*
 import mindustry.ui.*
 import mindustry.world.*
@@ -116,7 +116,10 @@ abstract class SpinBlock(name: String) : Block(name) {
         return side * size + off
     }
 
-    //TODO: fix right shift of connectors for size>1 blocks
+    //TODO: fix the shift of the connector display processing to the right up
+    // by `size-1, 2, ... n` for blocks `size>2`, where a 1 tile shift for blocks
+    // with `size=3` and `size=4`; 2 tile shift for blocks with `size=5` and `size=6`
+    // (didn't check larger sizes)
     override fun drawPlanRegion(req: BuildPlan, list: Eachable<BuildPlan>) {
         super.drawPlanRegion(req, list)
         connectionIndexes?.let { indexes ->
@@ -147,38 +150,17 @@ abstract class SpinBlock(name: String) : Block(name) {
     private fun getConnectSidePos(index: Int, size: Int, rotation: Int): Point2 {
         var side = index / size
         side = (side + rotation) % 4
-
-        val tangent = d4((side + 1) % 4)
-        var originX = 0
-        var originY = 0
-
-        if (size > 1) {
-            originX += size / 2
-            originY += size / 2
-            originY -= size - 1
-            if (side > 0) {
-                for (i in 1..side) {
-                    originX += d4x(i) * (size - 1)
-                    originY += d4y(i) * (size - 1)
-                }
-            }
-            originX += tangent.x * (index % size)
-            originY += tangent.y * (index % size)
+        val off = index % size
+        val pos = when (side) {
+            0 -> Point2(off, -1)
+            1 -> Point2(size, off)
+            2 -> Point2(off, size)
+            3 -> Point2(-1, off)
+            else -> Point2(off, -1)
         }
-        return Point2(originX + d4x(side), originY + d4y(side))
+        val shift = if (size % 2 == 1) (size - 1) / 2 else size / 2 - 1
+        return Point2(pos.x - shift, pos.y - shift)
     }
-
-    private fun d4(i: Int): Point2 {
-        return when (i % 4) {
-            0 -> Point2(0, -1)
-            1 -> Point2(1, 0)
-            2 -> Point2(0, 1)
-            3 -> Point2(-1, 0)
-            else -> Point2(0, 0)
-        }
-    }
-    private fun d4x(i: Int) = d4(i).x
-    private fun d4y(i: Int) = d4(i).y
 
     /**
      * Represents a building instance of this SpinBlock.
