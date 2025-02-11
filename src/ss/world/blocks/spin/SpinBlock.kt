@@ -2,9 +2,11 @@ package ss.world.blocks.spin
 
 import arc.Core.*
 import arc.graphics.g2d.*
-import arc.math.geom.*
+import arc.math.geom.Point2
+import arc.math.geom.Vec2
 import arc.util.*
-import mindustry.Vars.*
+import mindustry.Vars
+import mindustry.Vars.tilesize
 import mindustry.entities.units.*
 import mindustry.graphics.*
 import mindustry.ui.*
@@ -116,10 +118,6 @@ abstract class SpinBlock(name: String) : Block(name) {
         return side * size + off
     }
 
-    //TODO: fix the shift of the connector display processing to the right up
-    // by `size-1, 2, ... n` for blocks `size>2`, where a 1 tile shift for blocks
-    // with `size=3` and `size=4`; 2 tile shift for blocks with `size=5` and `size=6`
-    // (didn't check larger sizes)
     override fun drawPlanRegion(req: BuildPlan, list: Eachable<BuildPlan>) {
         super.drawPlanRegion(req, list)
         connectionIndexes?.let { indexes ->
@@ -132,9 +130,14 @@ abstract class SpinBlock(name: String) : Block(name) {
                 var occupied = false
                 list.each { plan ->
                     if (occupied) return@each
-                    if (cx >= plan.x && cy >= plan.y &&
-                        plan.x + plan.block.size > cx && plan.y + plan.block.size > cy
-                    ) {
+                    if (plan === req) return@each
+
+                    val otherSize = plan.block.size
+                    val otherX = plan.x - (otherSize - 1) / 2
+                    val otherY = plan.y - (otherSize - 1) / 2
+
+                    if (cx >= otherX && cx < otherX + otherSize &&
+                        cy >= otherY && cy < otherY + otherSize) {
                         occupied = true
                     }
                 }
