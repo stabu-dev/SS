@@ -16,6 +16,7 @@ class SSMod : Mod(){
 
     override fun loadContent(){
         Log.info("Loading some Spins & Stress content.")
+        SSSounds.load()
         SSBlocks().load()
     }
 }
